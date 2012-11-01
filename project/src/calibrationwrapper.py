@@ -74,7 +74,7 @@ def findCorners(calibrationImageFile):
     return corners
 
 
-def reproject(p, windowImage):
+def reproject(p, correspondences, windowImage):
     for face in range(0, 3):
         for x in range(1, 11):
             for y in range(1, 11):
@@ -82,12 +82,22 @@ def reproject(p, windowImage):
                 projectedCorner = numpy.dot(p , numpy.array([coord3d[0], coord3d[1], coord3d[2], 1]))
                 projectedCorner /= projectedCorner[0, 2]
                 intPos = (int(projectedCorner[0, 0] * ratio), int(projectedCorner[0, 1] * ratio))
-                #cv.Circle(windowImage, intPos , 4, cv.RGB(255, 0, 0))
+                cv.Circle(windowImage, intPos , 4, cv.RGB(255, 0, 0))
+    projectionerr = 0
+    squaredprojectionerr = 0
+    for (x2d, x3d) in correspondences:
+        projectedPos = numpy.dot(p , numpy.array([x3d[0], x3d[1], x3d[2], 1]))
+        projectedPos /= projectedPos[0, 2]
+        dst = distance((projectedPos[0, 0], projectedPos[0, 1]), x2d)
+        projectionerr += dst
+        squaredprojectionerr += dst ** 2
+    print("mean reprojection error: " + str(projectionerr / len(correspondences)) + "px")
+    print("mean squared reprojection error: " + str(squaredprojectionerr / len(correspondences)) + "px")
 
 
 def onMouseClick(event, x, y, flags, (windowImage, corners)):
     global selectedCorners, currentFace
-    if event == cv.CV_EVENT_LBUTTONDOWN: 
+    if event == cv.CV_EVENT_LBUTTONDOWN:
         selectedCorners.append((x / ratio, y / ratio))
         if len(selectedCorners) == 4:
             # if a face is defined add the correspondences
@@ -103,7 +113,7 @@ def onMouseClick(event, x, y, flags, (windowImage, corners)):
                 print(k)
                 print("rotation matrix R:")
                 print(r)
-                reproject(p, windowImage)
+                reproject(p, correspondences, windowImage)
         cv.Circle(windowImage, (x, y), 8, cv.RGB(255, 0, 0))
         cv.ShowImage(WINDOW_NAME, windowImage)
     
@@ -133,8 +143,8 @@ def getCorrespondencesForFace(selectedCorners, corners, currentFace, windowImage
                 coord3d = create3dCoord(currentFace, x + 1, y + 1)
                 correspondences.append((minCorner, coord3d))
                 intPos = (int(pos[0] * ratio), int(pos[1] * ratio))
-                #cv.Circle(windowImage, intPos , 4, cv.RGB(0, 0, 255))
-                #cv.PutText(windowImage, str(coord3d), intPos, DEFAULT_FONT , cv.RGB(0, 0, 255))
+                cv.Circle(windowImage, intPos , 4, cv.RGB(0, 0, 255))
+                cv.PutText(windowImage, str(coord3d), intPos, DEFAULT_FONT , cv.RGB(0, 0, 255))
     return correspondences
 
 

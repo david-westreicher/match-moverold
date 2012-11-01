@@ -4,11 +4,12 @@ Created on 01.11.2012
 @author: David
 '''
 import numpy
+import math
 
 # Gold Standard Algorithm for estimating P (Multiple View Geometry Sec. Edition, page:181, (7.1))
 # returns (p, camera center, calibration matrix, rotation matrix)
 def calculateCameraParameters(correspondences):
-    t, u = normalize(correspondences)
+    correspondences, t, u = normalize(correspondences)
     p = dlt(correspondences)
     p = nonLinearOptimization(p, correspondences)
     p = denormalize(p, t, u)
@@ -36,12 +37,45 @@ def dlt(correspondences):
     return p
 
 # normalize the correspondences (mean origin and mean length)
-# returns the transformation matrices (t,u)
+# returns the normalized correspondences and the transformation matrices (t,u)
 def normalize(correspondences):
-    return None, None
+    # transform correspondences from tuples into numpy.array's
+    corr = []
+    for (imageCoord, worldCoord) in correspondences:
+        corr.append((numpy.array(imageCoord), numpy.array(worldCoord)))
+        
+    # compute mean origin
+    imageOrigin = numpy.array([0.0, 0.0])
+    worldOrigin = numpy.array([0.0, 0.0, 0.0])
+    for (imageCoord, worldCoord) in corr:
+        imageOrigin += imageCoord
+        worldOrigin += worldCoord
+    imageOrigin /= len(correspondences)
+    worldOrigin /= len(correspondences)
+    
+    # compute mean norm
+    imageNorm = 0.0
+    worldNorm = 0.0
+    for (imageCoord, worldCoord) in corr:
+        imageNorm += numpy.linalg.norm(imageOrigin - imageCoord)
+        worldNorm += numpy.linalg.norm(worldOrigin - worldCoord)
+    imageNorm /= len(correspondences)
+    worldNorm /= len(correspondences)
+    tscale = math.sqrt(2) / imageNorm
+    uscale = math.sqrt(3) / worldNorm
+    
+    # create normalized correspondences by multiplying with matrix t, u
+    t = numpy.array([[tscale, 0, -imageOrigin[0] * tscale ], [0, tscale, -imageOrigin[1] * tscale ], [0, 0, 1]])
+    u = numpy.array([[uscale, 0, 0, -worldOrigin[0] * uscale ], [0, uscale, 0, -worldOrigin[1] * uscale ], [0, 0, uscale, -worldOrigin[2] * uscale], [0, 0, 0, 1]])
+    normalizedCorrespondences = []
+    for (imageCoord, worldCoord) in corr:
+        normalizedImageCoord = numpy.dot(t, numpy.append(imageCoord, [1]))
+        normalizedWorldCoord = numpy.dot(u, numpy.append(worldCoord, [1]))
+        normalizedCorrespondences.append((normalizedImageCoord, normalizedWorldCoord))
+    return normalizedCorrespondences, t, u
 
 def denormalize(p, t, u):
-    return p
+    return numpy.dot(numpy.dot(numpy.linalg.inv(t), p), u)
 
 
 # extract the camera paramters from p 
