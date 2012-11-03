@@ -9,13 +9,14 @@ import numpy
 import math
 from scipy import optimize
 import util
+import scipy
 
 # Gold Standard Algorithm for estimating P (Multiple View Geometry Sec. Edition, page:181, (7.1))
 # returns (p, camera center, calibration matrix, rotation matrix)
 def calculateCameraParameters(correspondences):
     normCorr, t, u = normalize(correspondences)
     p = dlt(normCorr)
-    p = nonLinearOptimizationConstrained(p, normCorr)
+    p = nonLinearOptimization(p, normCorr)
     p = denormalize(p, t, u)
     c, k, r = extractCameraParameters(p)
     return p, c, k, r
@@ -90,7 +91,7 @@ def extractCameraParameters(p):
     b = p[:, -1]
     c = -numpy.dot(numpy.linalg.inv(a), b)
     # rq decomposition
-    k, r = rq(a)
+    k, r = scipy.linalg.rq(a)
     return c, k, r
 
 
@@ -102,10 +103,6 @@ def reprojectionError(p, correspondences):
         projectedPos /= projectedPos[2]
         dst = util.distance((projectedPos[0], projectedPos[1]), x2d)
         projectionerr.append(dst)
-    sum = 0
-    for err in projectionerr:
-        sum += err
-    print("reprojection error:", sum)
     return numpy.asarray(projectionerr)
 
 
@@ -156,11 +153,3 @@ def nonLinearOptimizationConstrained(p, correspondences):
     print("optimized p")
     print(p)
     return p
-
-
-# rq-decomposition using qr-decomposition taken from -> http://www.janeriksolem.net/2011/03/rq-factorization-of-camera-matrices.html
-def rq(A):
-    Q, R = numpy.linalg.qr(numpy.flipud(A).T) 
-    R = numpy.flipud(R.T)
-    Q = Q.T 
-    return R[:, ::-1], Q[::-1, :]

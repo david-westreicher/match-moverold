@@ -1,0 +1,11 @@
+Metadata-Version: 1.0
+Name: Quaternion
+Version: 0.03.1
+Summary: Quaternion object manipulation
+Home-page: http://cxc.harvard.edu/mta/ASPECT/tool_doc/pydocs/Quaternion.html
+Author: Jean Connelly
+Author-email: jconnelly@cfa.harvard.edu
+License: BSD
+Download-URL: http://pypi.python.org/pypi/Quaternion/
+Description: UNKNOWN
+Platform: UNKNOWN

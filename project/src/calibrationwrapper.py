@@ -10,7 +10,7 @@ import calibration
 import util
 
 WINDOW_NAME = "Calibrate"
-WINDOW_SIZE = 1600.0
+WINDOW_SIZE = 1100.0
 BOX_NUM = 5
 BOX_CORNERS = [(1, 1), (1, -1), (-1, -1), (-1, 1)]
 DEFAULT_FONT = cv.InitFont(cv.CV_FONT_HERSHEY_SIMPLEX, 0.3, 0.3, 0, 1, 8)
@@ -50,18 +50,6 @@ def calibrate(calibrationImageFile):
     cv.NamedWindow(WINDOW_NAME, cv.CV_WINDOW_AUTOSIZE)
     cv.ShowImage(WINDOW_NAME, windowImage)
     cv.SetMouseCallback(WINDOW_NAME, onMouseClick, (windowImage, corners))
-    onMouseClick(1, 76 * WINDOW_SIZE / 800.0, 230 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 109 * WINDOW_SIZE / 800.0, 539 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 367 * WINDOW_SIZE / 800.0, 399 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 363 * WINDOW_SIZE / 800.0, 103 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 695 * WINDOW_SIZE / 800.0, 228 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 416 * WINDOW_SIZE / 800.0, 105 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 419 * WINDOW_SIZE / 800.0, 403 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 671 * WINDOW_SIZE / 800.0, 544 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 380 * WINDOW_SIZE / 800.0, 764 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 135 * WINDOW_SIZE / 800.0, 588 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 394 * WINDOW_SIZE / 800.0, 444 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
-    onMouseClick(1, 639 * WINDOW_SIZE / 800.0, 592 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
     cv.WaitKey()
     
 # find corners [(x1,y1),(x2,y2),...] iteratively (min. 300) and refine for sub-pixel accuracy
@@ -111,7 +99,7 @@ def reproject(p, correspondences, windowImage):
 def onMouseClick(event, x, y, flags, (windowImage, corners)):
     global selectedCorners, currentFace
     if event == cv.CV_EVENT_LBUTTONDOWN:
-        # print("\tonMouseClick(1," + str(x) + "* WINDOW_SIZE / 1600.0, " + str(y) + "* WINDOW_SIZE / 1600.0, None, (windowImage, corners))")
+        print("\tonMouseClick(1," + str(x) + "* WINDOW_SIZE / 1100.0, " + str(y) + "* WINDOW_SIZE / 1100.0, None, (windowImage, corners))")
         selectedCorners.append((x / ratio, y / ratio))
         if len(selectedCorners) == 4:
             # if a face is defined add the correspondences
@@ -158,8 +146,8 @@ def getCorrespondencesForFace(selectedCorners, corners, currentFace, windowImage
             if minDistance < MIN_DISTANCE_THRESHOLD:
                 coord3d = create3dCoord(currentFace, x + 1, y + 1)
                 intPos = (int(pos[0] * ratio), int(pos[1] * ratio))
-                cv.Circle(windowImage, intPos , 4, cv.RGB(0, 0, 255))
-                cv.PutText(windowImage, str(coord3d), intPos, DEFAULT_FONT , cv.RGB(0, 0, 255))
+                cv.Circle(windowImage, intPos , 6, cv.RGB(0, 0, 255))
+                # cv.PutText(windowImage, str(coord3d), intPos, DEFAULT_FONT , cv.RGB(0, 0, 255))
                 correspondences.append((minCorner, coord3d))
             
     print("found " + str(len(correspondences)) + " correspondences")
