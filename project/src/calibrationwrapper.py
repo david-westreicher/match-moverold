@@ -50,6 +50,18 @@ def calibrate(calibrationImageFile):
     cv.NamedWindow(WINDOW_NAME, cv.CV_WINDOW_AUTOSIZE)
     cv.ShowImage(WINDOW_NAME, windowImage)
     cv.SetMouseCallback(WINDOW_NAME, onMouseClick, (windowImage, corners))
+    onMouseClick(1, 347 * WINDOW_SIZE / 1100.0, 252 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 366 * WINDOW_SIZE / 1100.0, 445 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 527 * WINDOW_SIZE / 1100.0, 358 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 522 * WINDOW_SIZE / 1100.0, 173 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 729 * WINDOW_SIZE / 1100.0, 246 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 554 * WINDOW_SIZE / 1100.0, 166 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 558 * WINDOW_SIZE / 1100.0, 357 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 712 * WINDOW_SIZE / 1100.0, 447 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 535 * WINDOW_SIZE / 1100.0, 577 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 384 * WINDOW_SIZE / 1100.0, 476 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 542 * WINDOW_SIZE / 1100.0, 387 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
+    onMouseClick(1, 696 * WINDOW_SIZE / 1100.0, 475 * WINDOW_SIZE / 1100.0, None, (windowImage, corners))
     cv.WaitKey()
     
 # find corners [(x1,y1),(x2,y2),...] iteratively (min. 300) and refine for sub-pixel accuracy

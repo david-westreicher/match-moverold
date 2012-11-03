@@ -109,7 +109,7 @@ def reprojectionError(p, correspondences):
 def nonLinearOptimization(p, correspondences):
     # convert p matrix into vector, p.flatten() somehow doesn't work :(
     pflat = numpy.array([p[0, 0], p[0, 1], p[0, 2], p[0, 3], p[1, 0], p[1, 1], p[1, 2], p[1, 3], p[2, 0], p[2, 1], p[2, 2], p[2, 3]])
-    p = optimize.leastsq(reprojectionError, pflat, correspondences)
+    p = optimize.leastsq(reprojectionError, pflat, correspondences, factor=0.01)
     p = numpy.reshape(p[0], (3, 4))
     print("optimized p")
     print(p)
