@@ -2,16 +2,20 @@
 Created on 01.11.2012
 
 @author: David
+mean reprojection error: 0.551599651484px
+root mean squared reprojection error: 0.615873177017px
 '''
 import numpy
 import math
+from scipy import optimize
+import util
 
 # Gold Standard Algorithm for estimating P (Multiple View Geometry Sec. Edition, page:181, (7.1))
 # returns (p, camera center, calibration matrix, rotation matrix)
 def calculateCameraParameters(correspondences):
-    correspondences, t, u = normalize(correspondences)
-    p = dlt(correspondences)
-    p = nonLinearOptimization(p, correspondences)
+    normCorr, t, u = normalize(correspondences)
+    p = dlt(normCorr)
+    p = nonLinearOptimizationConstrained(p, normCorr)
     p = denormalize(p, t, u)
     c, k, r = extractCameraParameters(p)
     return p, c, k, r
@@ -22,7 +26,7 @@ def constructMatrixA(correspondences):
     for (x, bigX) in correspondences:
         matrixList.append([0, 0, 0, 0, -bigX[0], -bigX[1], -bigX[2], -1, x[1] * bigX[0], x[1] * bigX[1], x[1] * bigX[2], x[1] * 1])
         matrixList.append([bigX[0], bigX[1], bigX[2], 1, 0, 0, 0, 0, -x[0] * bigX[0], -x[0] * bigX[1], -x[0] * bigX[2], -x[0] * 1])
-    return numpy.matrix(matrixList)
+    return numpy.array(matrixList)
 
 
 # direct linear transform of the correspondences
@@ -90,7 +94,67 @@ def extractCameraParameters(p):
     return c, k, r
 
 
+def reprojectionError(p, correspondences):
+    projectionerr = []
+    p = numpy.reshape(p[0:12], (3, 4))
+    for (x2d, x3d) in correspondences:
+        projectedPos = numpy.dot(p , x3d)
+        projectedPos /= projectedPos[2]
+        dst = util.distance((projectedPos[0], projectedPos[1]), x2d)
+        projectionerr.append(dst)
+    sum = 0
+    for err in projectionerr:
+        sum += err
+    print("reprojection error:", sum)
+    return numpy.asarray(projectionerr)
+
+
 def nonLinearOptimization(p, correspondences):
+    # convert p matrix into vector, p.flatten() somehow doesn't work :(
+    pflat = numpy.array([p[0, 0], p[0, 1], p[0, 2], p[0, 3], p[1, 0], p[1, 1], p[1, 2], p[1, 3], p[2, 0], p[2, 1], p[2, 2], p[2, 3]])
+    p = optimize.leastsq(reprojectionError, pflat, correspondences)
+    p = numpy.reshape(p[0], (3, 4))
+    print("optimized p")
+    print(p)
+    return p
+
+
+def constructPFromParameters(parameterArr):
+    c = numpy.asarray(parameterArr[0:3])
+    quaternion = numpy.array(parameterArr[3:7])
+    print(quaternion)
+    # quaternionLength = (quaternion[0] ** 2 + quaternion[1] ** 2 + quaternion[2] ** 2 + quaternion[3] ** 2) ** 0.5
+    # quaternion /= quaternionLength
+    r = util.quaternion_to_matrix(quaternion)
+    r = r[0:3, 0:3]
+    k = numpy.array([[parameterArr[7], 0, parameterArr[8]], [0, parameterArr[7], parameterArr[9]], [0, 0, parameterArr[10]]])
+    # reconstruct p
+    p = numpy.dot(k, r)
+    c = -numpy.dot(p, c)
+    p = numpy.append(p, [[c[0]], [c[1]], [c[2]]], 1)
+    print(p, c, k, r)
+    return p
+
+
+def constrainedError(parameterArr, correspondences):
+    p = constructPFromParameters(parameterArr)
+    return reprojectionError(p, correspondences)
+
+
+def nonLinearOptimizationConstrained(p, correspondences):
+    # extract optimization parameters
+    c, k, r = extractCameraParameters(p)
+    print(p, c, k, r)
+    quat = util.quaternion_from_matrix(r)
+    print(quat)
+    # optimization parameters:translation(x,y,z),rotation in quaternions(w,i,j,k), focal length (f), focal centre (fx,fy), special k
+    pflat = numpy.array([c[0], c[1], c[2], quat.q[0], quat.q[1], quat.q[2], quat.q[3], (k[0, 0] + k[1, 1]) / 2, k[0, 2], k[1, 2], k[2, 2]])
+    # p = optimize.leastsq(constrainedError, pflat, correspondences)
+    p = constructPFromParameters(pflat)
+
+    c, k, r = extractCameraParameters(p)
+    print("optimized p")
+    print(p)
     return p
 
 

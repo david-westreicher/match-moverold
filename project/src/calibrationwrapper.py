@@ -7,9 +7,11 @@ from cv2 import cv
 import numpy
 import math
 import calibration
+import util
 
 WINDOW_NAME = "Calibrate"
 WINDOW_SIZE = 1600.0
+BOX_NUM = 5
 BOX_CORNERS = [(1, 1), (1, -1), (-1, -1), (-1, 1)]
 DEFAULT_FONT = cv.InitFont(cv.CV_FONT_HERSHEY_SIMPLEX, 0.3, 0.3, 0, 1, 8)
 # should be lower than the minimum distance between 2 corners in the images (magic number, but works for the example images)
@@ -48,6 +50,18 @@ def calibrate(calibrationImageFile):
     cv.NamedWindow(WINDOW_NAME, cv.CV_WINDOW_AUTOSIZE)
     cv.ShowImage(WINDOW_NAME, windowImage)
     cv.SetMouseCallback(WINDOW_NAME, onMouseClick, (windowImage, corners))
+    onMouseClick(1, 76 * WINDOW_SIZE / 800.0, 230 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 109 * WINDOW_SIZE / 800.0, 539 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 367 * WINDOW_SIZE / 800.0, 399 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 363 * WINDOW_SIZE / 800.0, 103 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 695 * WINDOW_SIZE / 800.0, 228 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 416 * WINDOW_SIZE / 800.0, 105 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 419 * WINDOW_SIZE / 800.0, 403 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 671 * WINDOW_SIZE / 800.0, 544 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 380 * WINDOW_SIZE / 800.0, 764 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 135 * WINDOW_SIZE / 800.0, 588 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 394 * WINDOW_SIZE / 800.0, 444 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
+    onMouseClick(1, 639 * WINDOW_SIZE / 800.0, 592 * WINDOW_SIZE / 800.0, None, (windowImage, corners))
     cv.WaitKey()
     
 # find corners [(x1,y1),(x2,y2),...] iteratively (min. 300) and refine for sub-pixel accuracy
@@ -73,31 +87,31 @@ def findCorners(calibrationImageFile):
     corners = cv.FindCornerSubPix(image, corners, (5, 5), (int(-1), int(-1)), (cv.CV_TERMCRIT_ITER | cv.CV_TERMCRIT_EPS, 20, 0.03))
     return corners
 
-
 def reproject(p, correspondences, windowImage):
     for face in range(0, 3):
-        for x in range(1, 11):
-            for y in range(1, 11):
+        for x in range(1, BOX_NUM * 2 + 1):
+            for y in range(1, BOX_NUM * 2 + 1):
                 coord3d = create3dCoord(face, x , y)
                 projectedCorner = numpy.dot(p , numpy.array([coord3d[0], coord3d[1], coord3d[2], 1]))
-                projectedCorner /= projectedCorner[0, 2]
-                intPos = (int(projectedCorner[0, 0] * ratio), int(projectedCorner[0, 1] * ratio))
+                projectedCorner /= projectedCorner[2]
+                intPos = (int(projectedCorner[0] * ratio), int(projectedCorner[1] * ratio))
                 cv.Circle(windowImage, intPos , 4, cv.RGB(255, 0, 0))
     projectionerr = 0
     squaredprojectionerr = 0
     for (x2d, x3d) in correspondences:
         projectedPos = numpy.dot(p , numpy.array([x3d[0], x3d[1], x3d[2], 1]))
-        projectedPos /= projectedPos[0, 2]
-        dst = distance((projectedPos[0, 0], projectedPos[0, 1]), x2d)
+        projectedPos /= projectedPos[2]
+        dst = util.distance((projectedPos[0], projectedPos[1]), x2d)
         projectionerr += dst
         squaredprojectionerr += dst ** 2
     print("mean reprojection error: " + str(projectionerr / len(correspondences)) + "px")
-    print("mean squared reprojection error: " + str(squaredprojectionerr / len(correspondences)) + "px")
+    print("root mean squared reprojection error: " + str(math.sqrt(squaredprojectionerr / len(correspondences))) + "px")
 
 
 def onMouseClick(event, x, y, flags, (windowImage, corners)):
     global selectedCorners, currentFace
     if event == cv.CV_EVENT_LBUTTONDOWN:
+        # print("\tonMouseClick(1," + str(x) + "* WINDOW_SIZE / 1600.0, " + str(y) + "* WINDOW_SIZE / 1600.0, None, (windowImage, corners))")
         selectedCorners.append((x / ratio, y / ratio))
         if len(selectedCorners) == 4:
             # if a face is defined add the correspondences
@@ -114,7 +128,8 @@ def onMouseClick(event, x, y, flags, (windowImage, corners)):
                 print("rotation matrix R:")
                 print(r)
                 reproject(p, correspondences, windowImage)
-        cv.Circle(windowImage, (x, y), 8, cv.RGB(255, 0, 0))
+                cv.SaveImage("../../out.bmp", windowImage)
+        cv.Circle(windowImage, (int(x), int(y)), 8, cv.RGB(255, 0, 0))
         cv.ShowImage(WINDOW_NAME, windowImage)
     
 # computes the 3d correspondences from 4 selected corners (which define the face) and the corners found from the corner detection
@@ -122,18 +137,19 @@ def getCorrespondencesForFace(selectedCorners, corners, currentFace, windowImage
     h = compute2DHomography(selectedCorners)
     correspondences = []
     # for every possible corner in the face
-    for x in range(0, 10):
-        for y in range(0, 10):
+    for x in range(0, BOX_NUM * 2):
+        for y in range(0, BOX_NUM * 2):
             # project the possible corner (in the range [-1,1]x[-1,1]) into image space with the homography h
-            projectedCorner = numpy.dot(h , numpy.array([(x / 4.5 - 1.0), (y / 4.5 - 1.0), 1]))
-            projectedCorner /= projectedCorner[0, 2]
+            scale = (BOX_NUM * 2 - 1.0) / 2.0
+            projectedCorner = numpy.dot(h , numpy.array([x / scale - 1.0, y / scale - 1.0, 1]))
+            projectedCorner /= projectedCorner[2]
             
             # find the closest corner from the corner detection set
             minDistance = 10000
             minCorner = None
-            pos = (projectedCorner[0, 0], projectedCorner[0, 1])
+            pos = (projectedCorner[0], projectedCorner[1])
             for corner in corners:
-                dist = distance(corner, pos)
+                dist = util.distance(corner, pos)
                 if dist < minDistance:
                     minDistance = dist
                     minCorner = corner
@@ -141,10 +157,12 @@ def getCorrespondencesForFace(selectedCorners, corners, currentFace, windowImage
             # check if the closest corner belongs to this corner -> add correspondence and paint a circle + the coordinates
             if minDistance < MIN_DISTANCE_THRESHOLD:
                 coord3d = create3dCoord(currentFace, x + 1, y + 1)
-                correspondences.append((minCorner, coord3d))
                 intPos = (int(pos[0] * ratio), int(pos[1] * ratio))
                 cv.Circle(windowImage, intPos , 4, cv.RGB(0, 0, 255))
                 cv.PutText(windowImage, str(coord3d), intPos, DEFAULT_FONT , cv.RGB(0, 0, 255))
+                correspondences.append((minCorner, coord3d))
+            
+    print("found " + str(len(correspondences)) + " correspondences")
     return correspondences
 
 
@@ -156,15 +174,11 @@ def compute2DHomography(selectedCorners):
         xprime = selectedCorners[i]
         matrixList.append([0, 0, 0, -x[0], -x[1], -1, xprime[1] * x[0], xprime[1] * x[1], xprime[1] * 1])
         matrixList.append([x[0], x[1], 1, 0, 0, 0, -xprime[0] * x[0], -xprime[0] * x[1], -xprime[0] * 1])
-    matrix = numpy.matrix(matrixList)
+    matrix = numpy.array(matrixList)
     _, _, v = numpy.linalg.svd(matrix)
     hcolumn = v[ -1, : ]
     h = numpy.reshape(hcolumn, (3, 3))
     return h
-
-# computes the 2d distance between vector a and b
-def distance(a, b):
-    return math.sqrt((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2)
 
 # creates a 3d coordinate from 2 coordinates depending on the face (left,right,bottom)
 def create3dCoord(currentFace, x, y):
