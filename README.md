@@ -14,6 +14,20 @@ Dependencies
       - numpy [numpy]
       - opencv for python [opencv]
 
+TODO
+------------
+   - shoot video
+   - Calibration
+      - Radial Distortion
+      - Compare results with openCV results
+   - F computation
+      - feature detection/matching
+      - 8 point algorithm
+      - normalized 8 point algorithm
+      - RANSAC
+      - compute P, P' from F
+   - render 3D Object
+
 
   [numpy]: http://sourceforge.net/projects/numpy/files/
   [opencv]: http://sourceforge.net/projects/opencvlibrary/
